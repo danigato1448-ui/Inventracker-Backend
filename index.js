@@ -8,10 +8,11 @@ app.use(express.json());
 
 // Conexión real a la base de datos Inventracker
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '', 
-    database: 'inventracker_db'
+    host: process.env.MYSQLHOST || 'localhost',
+    user: process.env.MYSQLUSER || 'root',
+    password: process.env.MYSQLPASSWORD || '', 
+    database: process.env.MYSQLDATABASE || 'inventracker_db', // nombre de tu DB local
+    port: process.env.MYSQLPORT || 3306
 });
 
 db.connect((err) => {
