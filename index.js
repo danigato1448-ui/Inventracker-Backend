@@ -4,7 +4,7 @@ const mysql = require('mysql2');
 
 const app = express();
 
-// CORS - Asegúrate de poner tu GitHub Pages real
+// CORS configurado
 app.use(cors({
     origin: [
         'https://danigato1448-ui.github.io',
@@ -19,13 +19,13 @@ app.use(cors({
 
 app.use(express.json());
 
-// Conexión a la base de datos
+// ==================== CONEXIÓN A MYSQL (CORREGIDA) ====================
 const db = mysql.createConnection({
-    host: process.env.MYSQLHOST || 'localhost',
-    user: process.env.MYSQLUSER || 'root',
-    password: process.env.MYSQLPASSWORD || '',
-    database: process.env.MYSQLDATABASE || 'railway',
-    port: process.env.MYSQLPORT || 3306,
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'railway',
+    port: parseInt(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -34,9 +34,15 @@ const db = mysql.createConnection({
 db.connect((err) => {
     if (err) {
         console.error('❌ Error de conexión a MySQL:', err.message);
+        console.log('Variables disponibles:');
+        console.log('DB_HOST:', process.env.DB_HOST ? '✅ Presente' : '❌ Vacío');
+        console.log('DB_USER:', process.env.DB_USER ? '✅ Presente' : '❌ Vacío');
+        console.log('DB_NAME:', process.env.DB_NAME ? '✅ Presente' : '❌ Vacío');
         return;
     }
-    console.log('✅ Conectado correctamente a MySQL en Railway');
+    console.log('✅ ¡Conexión exitosa a MySQL!');
+    console.log(`   Base de datos: ${process.env.DB_NAME}`);
+    console.log(`   Host: ${process.env.DB_HOST}`);
 });
 
 // ==================== RUTAS ====================
@@ -47,7 +53,7 @@ app.post('/api/login', (req, res) => {
 
     db.query(sql, [usuario, password], (err, results) => {
         if (err) {
-            console.error("Error en login:", err);
+            console.error("Error en login:", err.message);
             return res.status(500).json({ success: false, message: "Error en el servidor" });
         }
         if (results.length > 0) {
@@ -57,7 +63,7 @@ app.post('/api/login', (req, res) => {
                 user: results[0].usuario 
             });
         } else {
-            return res.status(401).json({ success: false, message: "Error en la autenticación" });
+            return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
         }
     });
 });
