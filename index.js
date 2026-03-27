@@ -4,35 +4,18 @@ const mysql = require('mysql2');
 
 const app = express();
 
-// ==================== CONFIGURACIÓN DE CORS (CORREGIDA) ====================
+// ==================== CONFIGURACIÓN DE CORS (CORREGIDA AL 100%) ====================
+// Usamos origin: '*' para permitir peticiones desde cualquier lugar y evitar bloqueos
 app.use(cors({
-    origin: function (origin, callback) {
-        // Permitir peticiones sin origen (como Postman o apps móviles)
-        if (!origin) return callback(null, true);
-        
-        const allowedOrigins = [
-            'https://danigato1448-ui.github.io',
-            'https://danigato1448-ui.github.io/repository-fronted',
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            'http://localhost:5500'
-        ];
-
-        // Verificamos si el origen está en la lista o si es un subdominio de github.io
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('github.io')) {
-            callback(null, true);
-        } else {
-            callback(new Error('No permitido por CORS'));
-        }
-    },
+    origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
 
 app.use(express.json());
 
-// ==================== CONEXIÓN A MYSQL ====================
+// ==================== CONEXIÓN A MYSQL (CONFIGURACIÓN RAILWAY) ====================
 const db = mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -56,23 +39,27 @@ db.connect((err) => {
 
 app.post('/api/login', (req, res) => {
     const { usuario, password } = req.body;
-    // Agregamos un log para ver qué está llegando al servidor en Railway
-    console.log(`Intento de login para usuario: ${usuario}`);
+    
+    // Log para verificar en Railway que la petición está llegando
+    console.log(`Petición recibida en /api/login para el usuario: ${usuario}`);
 
     const sql = 'SELECT * FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
 
     db.query(sql, [usuario, password], (err, results) => {
         if (err) {
-            console.error("Error en login:", err.message);
+            console.error("Error en la consulta de login:", err.message);
             return res.status(500).json({ success: false, message: "Error en el servidor" });
         }
+        
         if (results.length > 0) {
+            console.log(`✅ Login exitoso para: ${usuario}`);
             return res.json({ 
                 success: true, 
                 message: "Autenticación satisfactoria",
                 user: results[0].usuario 
             });
         } else {
+            console.log(`⚠️ Intento de login fallido para: ${usuario}`);
             return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
         }
     });
@@ -88,7 +75,10 @@ app.get('/api/dashboard-stats', (req, res) => {
     `;
 
     db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (err) {
+            console.error("Error en dashboard-stats:", err.message);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
         res.json(results[0]);
     });
 });
