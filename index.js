@@ -3,24 +3,27 @@ const cors = require('cors');
 const mysql = require('mysql2');
 
 const app = express();
+
+// Configuración de CORS: Permite que tu GitHub Pages y tu App de Android se conecten
 app.use(cors());
 app.use(express.json());
 
-// Conexión real a la base de datos Inventracker
+// Conexión dinámica a la base de datos
+// Usamos los nombres de variables que configuraste en Railway
 const db = mysql.createConnection({
-    host: process.env.MYSQLHOST || 'localhost',
-    user: process.env.MYSQLUSER || 'root',
-    password: process.env.MYSQLPASSWORD || '', 
-    database: process.env.MYSQLDATABASE || 'inventracker_db', // nombre de tu DB local
-    port: process.env.MYSQLPORT || 3306
+    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '', 
+    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'railway',
+    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306
 });
 
 db.connect((err) => {
     if (err) {
-        console.error('Error de conexión a MySQL:', err);
+        console.error('❌ Error de conexión a MySQL:', err);
         return;
     }
-    console.log('✅ Conectado a la base de datos MySQL (Inventracker)');
+    console.log('✅ Conectado a la base de datos MySQL en Railway');
 });
 
 // --- RUTA DE LOGIN ---
@@ -31,7 +34,12 @@ app.post('/api/login', (req, res) => {
     db.query(sql, [usuario, password], (err, results) => {
         if (err) return res.status(500).json({ success: false, message: "Error en el servidor" });
         if (results.length > 0) {
-            return res.status(200).json({ success: true, message: "Autenticación satisfactoria" });
+            // Enviamos un JSON claro para que tanto el HTML como Android lo entiendan
+            return res.status(200).json({ 
+                success: true, 
+                message: "Autenticación satisfactoria",
+                user: results[0].usuario 
+            });
         } else {
             return res.status(401).json({ success: false, message: "Error en la autenticación" });
         }
@@ -40,7 +48,6 @@ app.post('/api/login', (req, res) => {
 
 // --- RUTA: ESTADÍSTICAS PARA LAS TARJETAS ---
 app.get('/api/dashboard-stats', (req, res) => {
-    // Usando stock_actual y stock_minimo de tu tabla productos
     const sql = `
         SELECT 
             (SELECT COUNT(*) FROM productos) AS total_productos,
@@ -60,22 +67,18 @@ app.get('/api/dashboard-stats', (req, res) => {
 
 // --- RUTA: LISTADO COMPLETO DE PRODUCTOS ---
 app.get('/productos', (req, res) => {
-    // Usamos asterisco para que traiga TODO sin errores de nombres
     const sql = 'SELECT * FROM productos'; 
-
     db.query(sql, (err, results) => {
         if (err) {
             console.error("❌ ERROR EN SQL:", err.sqlMessage);
             return res.status(500).json({ error: err.sqlMessage });
         }
-        console.log("📦 Productos enviados a Android:", results.length);
         res.status(200).json(results);
     });
 });
 
 // --- RUTA: ÚLTIMOS MOVIMIENTOS ---
 app.get('/api/movimientos-resumen', (req, res) => {
-    // Usando id_movimiento, id_producto, id_tipo, cantidad, fecha e id_usuario
     const sql = `
         SELECT 
             fecha, 
@@ -96,7 +99,9 @@ app.get('/api/movimientos-resumen', (req, res) => {
     });
 });
 
-const PORT = 3001;
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+// --- INICIO DEL SERVIDOR ---
+// Railway asigna el puerto mediante process.env.PORT
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor Inventracker activo en puerto ${PORT}`);
 });
