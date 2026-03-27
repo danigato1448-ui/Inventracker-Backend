@@ -4,22 +4,35 @@ const mysql = require('mysql2');
 
 const app = express();
 
-// CORS configurado
+// ==================== CONFIGURACIÓN DE CORS (CORREGIDA) ====================
 app.use(cors({
-    origin: [
-        'https://danigato1448-ui.github.io',
-        'https://danigato1448-ui.github.io/repository-fronted',
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:5500'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
+    origin: function (origin, callback) {
+        // Permitir peticiones sin origen (como Postman o apps móviles)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            'https://danigato1448-ui.github.io',
+            'https://danigato1448-ui.github.io/repository-fronted',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:5500'
+        ];
+
+        // Verificamos si el origen está en la lista o si es un subdominio de github.io
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('github.io')) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
 
-// ==================== CONEXIÓN A MYSQL (CORREGIDA) ====================
+// ==================== CONEXIÓN A MYSQL ====================
 const db = mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -34,21 +47,18 @@ const db = mysql.createConnection({
 db.connect((err) => {
     if (err) {
         console.error('❌ Error de conexión a MySQL:', err.message);
-        console.log('Variables disponibles:');
-        console.log('DB_HOST:', process.env.DB_HOST ? '✅ Presente' : '❌ Vacío');
-        console.log('DB_USER:', process.env.DB_USER ? '✅ Presente' : '❌ Vacío');
-        console.log('DB_NAME:', process.env.DB_NAME ? '✅ Presente' : '❌ Vacío');
         return;
     }
     console.log('✅ ¡Conexión exitosa a MySQL!');
-    console.log(`   Base de datos: ${process.env.DB_NAME}`);
-    console.log(`   Host: ${process.env.DB_HOST}`);
 });
 
 // ==================== RUTAS ====================
 
 app.post('/api/login', (req, res) => {
     const { usuario, password } = req.body;
+    // Agregamos un log para ver qué está llegando al servidor en Railway
+    console.log(`Intento de login para usuario: ${usuario}`);
+
     const sql = 'SELECT * FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
 
     db.query(sql, [usuario, password], (err, results) => {
