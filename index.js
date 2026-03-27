@@ -1,17 +1,21 @@
 const express = require('express');
-const cors = require('cors');
 const mysql = require('mysql2');
 
 const app = express();
 
-// ==================== CONFIGURACIÓN DE CORS (CORREGIDA AL 100%) ====================
-// Usamos origin: '*' para permitir peticiones desde cualquier lugar y evitar bloqueos
-app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+// ==================== CONFIGURACIÓN DE CORS ULTRA-AGRESIVA ====================
+// Esto reemplaza al paquete 'cors' para forzar las cabeceras en cada respuesta
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Si el navegador hace la pregunta previa (OPTIONS), respondemos OK de inmediato
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 
 app.use(express.json());
 
@@ -39,27 +43,23 @@ db.connect((err) => {
 
 app.post('/api/login', (req, res) => {
     const { usuario, password } = req.body;
-    
-    // Log para verificar en Railway que la petición está llegando
-    console.log(`Petición recibida en /api/login para el usuario: ${usuario}`);
+    console.log(`Intentando login para: ${usuario}`);
 
     const sql = 'SELECT * FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
 
     db.query(sql, [usuario, password], (err, results) => {
         if (err) {
-            console.error("Error en la consulta de login:", err.message);
+            console.error("Error en login:", err.message);
             return res.status(500).json({ success: false, message: "Error en el servidor" });
         }
         
         if (results.length > 0) {
-            console.log(`✅ Login exitoso para: ${usuario}`);
             return res.json({ 
                 success: true, 
                 message: "Autenticación satisfactoria",
                 user: results[0].usuario 
             });
         } else {
-            console.log(`⚠️ Intento de login fallido para: ${usuario}`);
             return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
         }
     });
@@ -75,10 +75,7 @@ app.get('/api/dashboard-stats', (req, res) => {
     `;
 
     db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Error en dashboard-stats:", err.message);
-            return res.status(500).json({ error: err.sqlMessage });
-        }
+        if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json(results[0]);
     });
 });
