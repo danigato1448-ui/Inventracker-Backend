@@ -4,18 +4,31 @@ const mysql = require('mysql2');
 
 const app = express();
 
-// Configuración de CORS: Permite que tu GitHub Pages y tu App de Android se conecten
-app.use(cors());
+// ✅ CORS mejorado: permite tu GitHub Pages + localhost para desarrollo
+app.use(cors({
+    origin: [
+        'https://danigato1448-ui.github.io/repository-fronted/',           // Cambia por tu dominio real de GitHub Pages
+        'https://github.com/danigato1448-ui/repository-fronted.git',   // Si el frontend está en una subcarpeta
+        'http://localhost:3000',                 // Para pruebas locales
+        'http://127.0.0.1:3000'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
+
 app.use(express.json());
 
-// Conexión dinámica a la base de datos
-// Usamos los nombres de variables que configuraste en Railway
+// Conexión a MySQL (Railway inyecta estas variables automáticamente)
 const db = mysql.createConnection({
-    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '', 
-    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'railway',
-    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306
+    host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+    user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+    password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '',
+    database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'railway',
+    port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
+    // Opcional: para más estabilidad en Railway
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
 db.connect((err) => {
@@ -24,6 +37,14 @@ db.connect((err) => {
         return;
     }
     console.log('✅ Conectado a la base de datos MySQL en Railway');
+});
+
+// Rutas (las que ya tienes se mantienen igual)
+// ... tu ruta /api/login, /api/dashboard-stats, /productos, etc.
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
 
 // --- RUTA DE LOGIN ---
