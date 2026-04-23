@@ -81,8 +81,22 @@ app.get('/api/dashboard-stats', (req, res) => {
 });
 
 app.get('/productos', (req, res) => {
-    db.query('SELECT * FROM productos', (err, results) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
+    // Esta consulta obliga a la DB a buscar el nombre en la tabla categorias
+    const sql = `
+        SELECT 
+            p.*, 
+            c.nombre_categoria, 
+            prov.nombre_proveedor
+        FROM productos p
+        INNER JOIN categorias c ON p.id_categoria = c.id_categoria
+        INNER JOIN proveedores prov ON p.id_proveedor = prov.id_proveedor
+    `;
+    
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("Error en el JOIN:", err);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
         res.json(results);
     });
 });
