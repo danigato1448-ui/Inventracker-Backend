@@ -117,17 +117,18 @@ app.get('/api/movimientos-resumen', (req, res) => {
 
 // ==================== NUEVA RUTA: OBTENER USUARIOS ====================
 app.get('/api/usuarios', (req, res) => {
-    // Consulta con JOIN para traer el nombre del rol (asumiendo que tu tabla de roles tiene una columna 'nombre_rol')
-    // Si no tienes tabla de roles, usa: SELECT id_usuario as id, nombre_completo as nombre, usuario, id_rol as rol FROM usuarios
+    // Usamos CASE para que el frontend reciba "Administrador" en lugar de "1"
     const sql = `
         SELECT 
-            u.id_usuario AS id, 
-            u.nombre_completo AS nombre, 
-            u.usuario, 
-            r.nombre_rol AS rol 
-        FROM usuarios u
-        INNER JOIN roles r ON u.id_rol = r.id_rol
-        WHERE u.estado = 'Activo'
+            id_usuario AS id, 
+            nombre_completo AS nombre, 
+            usuario, 
+            CASE 
+                WHEN id_rol = 1 THEN 'Administrador' 
+                ELSE 'Empleado' 
+            END AS rol 
+        FROM usuarios 
+        WHERE estado = 'Activo'
     `;
 
     db.query(sql, (err, results) => {
@@ -135,7 +136,7 @@ app.get('/api/usuarios', (req, res) => {
             console.error("Error al obtener usuarios:", err);
             return res.status(500).json({ error: err.sqlMessage });
         }
-        res.json(results);
+        res.json(results); // Envía la lista de usuarios ya "traducida"
     });
 });
 
