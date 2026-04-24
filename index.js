@@ -115,8 +115,33 @@ app.get('/api/movimientos-resumen', (req, res) => {
     });
 });
 
+// ==================== NUEVA RUTA: OBTENER USUARIOS ====================
+app.get('/api/usuarios', (req, res) => {
+    // Consulta con JOIN para traer el nombre del rol (asumiendo que tu tabla de roles tiene una columna 'nombre_rol')
+    // Si no tienes tabla de roles, usa: SELECT id_usuario as id, nombre_completo as nombre, usuario, id_rol as rol FROM usuarios
+    const sql = `
+        SELECT 
+            u.id_usuario AS id, 
+            u.nombre_completo AS nombre, 
+            u.usuario, 
+            r.nombre_rol AS rol 
+        FROM usuarios u
+        INNER JOIN roles r ON u.id_rol = r.id_rol
+        WHERE u.estado = 'Activo'
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("Error al obtener usuarios:", err);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
+        res.json(results);
+    });
+});
+
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor Inventracker corriendo en el puerto ${PORT}`);
 });
+
