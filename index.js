@@ -123,6 +123,7 @@ app.get('/api/usuarios', (req, res) => {
             id_usuario AS id, 
             nombre_completo AS nombre, 
             usuario, 
+            rol
             CASE 
                 WHEN id_rol = 1 THEN 'Administrador' 
                 ELSE 'Empleado' 
