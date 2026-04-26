@@ -45,7 +45,7 @@ app.post('/api/login', (req, res) => {
     const { usuario, password } = req.body;
     console.log(`Intentando login para: ${usuario}`);
 
-    const sql = 'SELECT * FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
+    const sql = 'SELECT usuario, rol FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
 
     db.query(sql, [usuario, password], (err, results) => {
         if (err) {
@@ -57,7 +57,8 @@ app.post('/api/login', (req, res) => {
             return res.json({ 
                 success: true, 
                 message: "Autenticación satisfactoria",
-                user: results[0].usuario 
+                user: results[0].usuario,
+                rol: results[0].rol 
             });
         } else {
             return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
@@ -117,17 +118,12 @@ app.get('/api/movimientos-resumen', (req, res) => {
 
 // ==================== NUEVA RUTA: OBTENER USUARIOS ====================
 app.get('/api/usuarios', (req, res) => {
-    // Usamos CASE para que el frontend reciba "Administrador" en lugar de "1"
     const sql = `
         SELECT 
             id_usuario AS id, 
             nombre_completo AS nombre, 
             usuario, 
             rol
-            CASE 
-                WHEN id_rol = 1 THEN 'Administrador' 
-                ELSE 'Empleado' 
-            END AS rol 
         FROM usuarios 
         WHERE estado = 'Activo'
     `;
