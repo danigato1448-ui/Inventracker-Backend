@@ -161,29 +161,20 @@ app.get('/api/usuarios/:id', (req, res) => {
 });
 
 // ==================== RUTA PARA GUARDAR CAMBIOS (ACTUALIZAR) ====================
+// ESTA ES LA RUTA QUE ESCRIBE EN LA BASE DE DATOS
 app.put('/api/usuarios/:id', (req, res) => {
     const { id } = req.params;
     const { nombre, estado, id_rol } = req.body;
 
-    // Aquí es donde sucede la magia: actualizamos la tabla usuarios
-    const sql = `
-        UPDATE usuarios 
-        SET nombre_completo = ?, estado = ?, id_rol = ? 
-        WHERE id_usuario = ?
-    `;
+    // IMPORTANTE: Aquí usamos id_rol que es el NÚMERO (1 o 2)
+    const sql = `UPDATE usuarios SET nombre_completo = ?, estado = ?, id_rol = ? WHERE id_usuario = ?`;
     
     db.query(sql, [nombre, estado, id_rol, id], (err, result) => {
         if (err) {
-            console.error("Error al actualizar en Railway:", err.sqlMessage);
+            console.error("Error en Railway:", err);
             return res.status(500).json({ error: err.sqlMessage });
         }
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "No se encontró el usuario para actualizar" });
-        }
-
-        console.log(`✅ Usuario ${id} actualizado con éxito`);
-        res.json({ success: true, message: "Cambios guardados en la base de datos" });
+        res.json({ success: true, message: "Actualizado en Railway" });
     });
 });
 
