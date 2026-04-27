@@ -45,7 +45,7 @@ app.post('/api/login', (req, res) => {
     const { usuario, password } = req.body;
     console.log(`Intentando login para: ${usuario}`);
 
-    const sql = 'SELECT usuario, rol FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
+    const sql = 'SELECT usuario, rol, estado FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
 
     db.query(sql, [usuario, password], (err, results) => {
         if (err) {
@@ -58,7 +58,8 @@ app.post('/api/login', (req, res) => {
                 success: true, 
                 message: "Autenticación satisfactoria",
                 user: results[0].usuario,
-                rol: results[0].rol 
+                rol: results[0].rol, 
+                estado: results[0].estado
             });
         } else {
             return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
@@ -123,9 +124,12 @@ app.get('/api/usuarios', (req, res) => {
             id_usuario AS id, 
             nombre_completo AS nombre, 
             usuario, 
-            rol
+            estado,
+        CASE 
+          WHEN id_rol = 1 THEN 'Administrador' 
+          ELSE 'Empleado' 
+        END AS rol
         FROM usuarios 
-        WHERE estado = 'Activo'
     `;
 
     db.query(sql, (err, results) => {
