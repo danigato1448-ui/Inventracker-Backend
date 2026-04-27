@@ -160,6 +160,27 @@ app.get('/api/usuarios/:id', (req, res) => {
     });
 });
 
+// 3. RUTA PARA GUARDAR LOS CAMBIOS (ACTUALIZAR)
+app.put('/api/usuarios/:id', (req, res) => {
+    const { id } = req.params;
+    const { nombre, estado, id_rol } = req.body;
+
+    // SQL para actualizar los datos en la tabla
+    const sql = `
+        UPDATE usuarios 
+        SET nombre_completo = ?, estado = ?, id_rol = ? 
+        WHERE id_usuario = ?
+    `;
+    
+    db.query(sql, [nombre, estado, id_rol, id], (err, result) => {
+        if (err) {
+            console.error("Error al actualizar:", err);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
+        res.json({ success: true, message: "Usuario actualizado con éxito" });
+    });
+});
+
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
