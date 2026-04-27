@@ -117,9 +117,9 @@ app.get('/api/movimientos-resumen', (req, res) => {
     });
 });
 
-// ==================== NUEVA RUTA: OBTENER USUARIOS ====================
+// 1. RUTA PARA LA TABLA (TODOS LOS USUARIOS)
+// Esta se queda como está, pero quitamos el 'const { id }' que no hace nada aquí
 app.get('/api/usuarios', (req, res) => {
-    const { id } = req.params;
     const sql = `
         SELECT 
             u.id_usuario AS id, 
@@ -130,25 +130,33 @@ app.get('/api/usuarios', (req, res) => {
         FROM usuarios u
         INNER JOIN roles r ON u.id_rol = r.id_rol
     `;
-
-   db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Error al obtener lista de usuarios:", err);
-            return res.status(500).json({ error: err.sqlMessage });
-        }
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json(results);
     });
 });
 
-// ==================== NUEVA RUTA: ACTUALIZAR USUARIO (PUT) ====================
-app.put('/api/usuarios/:id', (req, res) => {
-    const { id } = req.params;
-    const { nombre, estado, id_rol } = req.body;
-    const sql = 'UPDATE usuarios SET nombre_completo = ?, estado = ?, id_rol = ? WHERE id_usuario = ?';
-    
-    db.query(sql, [nombre, estado, id_rol, id], (err, result) => {
+// 2. RUTA PARA EL FORMULARIO DE EDITAR (UN SOLO USUARIO)
+// Esta es la que tu pantalla de editar busca y NO encontraba
+app.get('/api/usuarios/:id', (req, res) => {
+    const { id } = req.params; 
+    const sql = `
+        SELECT 
+            id_usuario AS id, 
+            nombre_completo AS nombre, 
+            usuario, 
+            estado, 
+            id_rol 
+        FROM usuarios 
+        WHERE id_usuario = ?
+    `;
+    db.query(sql, [id], (err, results) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
-        res.json({ success: true, message: "Usuario actualizado" });
+        if (results.length > 0) {
+            res.json(results[0]);
+        } else {
+            res.status(404).json({ message: "Usuario no encontrado" });
+        }
     });
 });
 
