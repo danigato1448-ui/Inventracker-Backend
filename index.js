@@ -118,26 +118,31 @@ app.get('/api/movimientos-resumen', (req, res) => {
 });
 
 // ==================== NUEVA RUTA: OBTENER USUARIOS ====================
-app.get('/api/usuarios', (req, res) => {
+app.get('/api/usuarios/:id', (req, res) => {
+    const { id } = req.params;
     const sql = `
         SELECT 
             id_usuario AS id, 
             nombre_completo AS nombre, 
             usuario, 
             estado,
-        CASE 
-          WHEN id_rol = 1 THEN 'Administrador' 
-          ELSE 'Empleado' 
-        END AS rol
+            id_rol AS rol -- Enviamos el ID del rol para que el <select> lo marque fácil
         FROM usuarios 
+        WHERE id_usuario = ?
     `;
 
-    db.query(sql, (err, results) => {
+    db.query(sql, [id], (err, results) => {
         if (err) {
-            console.error("Error al obtener usuarios:", err);
+            console.error("Error al obtener usuario:", err);
             return res.status(500).json({ error: err.sqlMessage });
         }
-        res.json(results); // Envía la lista de usuarios ya "traducida"
+        
+        if (results.length > 0) {
+            // Enviamos el primer resultado encontrado
+            res.json(results[0]);
+        } else {
+            res.status(404).json({ message: "Usuario no encontrado" });
+        }
     });
 });
 
