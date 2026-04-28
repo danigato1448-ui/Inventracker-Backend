@@ -118,7 +118,6 @@ app.get('/api/movimientos-resumen', (req, res) => {
 });
 
 // 1. RUTA PARA LA TABLA (TODOS LOS USUARIOS)
-// Esta se queda como está, pero quitamos el 'const { id }' que no hace nada aquí
 app.get('/api/usuarios', (req, res) => {
     const sql = `
         SELECT 
@@ -137,7 +136,6 @@ app.get('/api/usuarios', (req, res) => {
 });
 
 // 2. RUTA PARA EL FORMULARIO DE EDITAR (UN SOLO USUARIO)
-// Esta es la que tu pantalla de editar busca y NO encontraba
 app.get('/api/usuarios/:id', (req, res) => {
     const { id } = req.params; 
     const sql = `
@@ -198,6 +196,31 @@ app.delete('/api/usuarios/:id', (req, res) => {
 
         console.log(`🗑️ Usuario con ID ${id} eliminado correctamente`);
         res.json({ success: true, message: "Usuario eliminado con éxito" });
+    });
+});
+
+// ==================== NUEVA RUTA: CREAR USUARIO (POST) ====================
+app.post('/api/usuarios', (req, res) => {
+    const { nombre, usuario, password, id_rol, estado } = req.body;
+
+    // IMPORTANTE: Asegúrate de que los nombres de las columnas coincidan con tu DB
+    const sql = `
+        INSERT INTO usuarios (nombre_completo, usuario, password, id_rol, estado) 
+        VALUES (?, ?, ?, ?, ?)
+    `;
+
+    db.query(sql, [nombre, usuario, password, id_rol, estado], (err, result) => {
+        if (err) {
+            console.error("Error al insertar usuario:", err);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
+        
+        console.log("✅ Nuevo usuario creado con éxito");
+        res.status(201).json({ 
+            success: true, 
+            message: "Usuario creado", 
+            id: result.insertId 
+        });
     });
 });
 // ==================== INICIO DEL SERVIDOR ====================
