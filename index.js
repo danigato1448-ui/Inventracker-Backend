@@ -178,6 +178,28 @@ app.put('/api/usuarios/:id', (req, res) => {
     });
 });
 
+// ==================== NUEVA RUTA: ELIMINAR USUARIO ====================
+app.delete('/api/usuarios/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Consulta SQL para borrar físicamente al usuario de la tabla
+    const sql = 'DELETE FROM usuarios WHERE id_usuario = ?';
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Error al eliminar en la base de datos:", err);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
+
+        // Si no se borró nada (por ejemplo, el ID no existe)
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+
+        console.log(`🗑️ Usuario con ID ${id} eliminado correctamente`);
+        res.json({ success: true, message: "Usuario eliminado con éxito" });
+    });
+});
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
