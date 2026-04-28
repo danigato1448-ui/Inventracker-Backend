@@ -203,13 +203,16 @@ app.delete('/api/usuarios/:id', (req, res) => {
 app.post('/api/usuarios', (req, res) => {
     const { nombre, usuario, password, id_rol, estado } = req.body;
 
-    // IMPORTANTE: Asegúrate de que los nombres de las columnas coincidan con tu DB
+    // Determinamos el texto del rol basado en el ID que viene del HTML
+    const textoRol = (id_rol === 1) ? 'Administrador' : 'Empleado';
+
     const sql = `
-        INSERT INTO usuarios (nombre_completo, usuario, password, id_rol, estado) 
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO usuarios (nombre_completo, usuario, password, rol, id_rol, estado) 
+        VALUES (?, ?, ?, ?, ?, ?)
     `;
 
-    db.query(sql, [nombre, usuario, password, id_rol, estado], (err, result) => {
+    // Pasamos 6 valores para las 6 columnas
+    db.query(sql, [nombre, usuario, password, textoRol, id_rol, estado], (err, result) => {
         if (err) {
             console.error("Error al insertar usuario:", err);
             return res.status(500).json({ error: err.sqlMessage });
