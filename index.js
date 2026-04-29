@@ -226,6 +226,33 @@ app.post('/api/usuarios', (req, res) => {
         });
     });
 });
+
+// ==================== RUTAS DE PRODUCTOS ====================
+
+// Crear Producto 
+app.post('/api/productos', (req, res) => {
+    const { nombre, referencia, id_categoria, id_proveedor, stock_actual, stock_minimo, precio_venta } = req.body;
+    const sql = `INSERT INTO productos (nombre_producto, referencia, id_categoria, id_proveedor, stock_actual, stock_minimo, precio_venta) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    
+    db.query(sql, [nombre, referencia, id_categoria, id_proveedor, stock_actual, stock_minimo, precio_venta], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        res.status(201).json({ success: true, id: result.insertId });
+    });
+});
+
+// Actualizar Producto
+app.put('/api/productos/:id', (req, res) => {
+    const { id } = req.params;
+    const { nombre, referencia, id_categoria, stock_actual, precio_venta } = req.body;
+    const sql = `UPDATE productos SET nombre_producto = ?, referencia = ?, id_categoria = ?, stock_actual = ?, precio_venta = ? 
+                 WHERE id_producto = ?`;
+    
+    db.query(sql, [nombre, referencia, id_categoria, stock_actual, precio_venta, id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        res.json({ success: true });
+    });
+});
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
