@@ -242,6 +242,7 @@ app.post('/api/productos', (req, res) => {
 });
 
 // Actualizar Producto
+// En tu index.js, busca la ruta PUT de productos y déjala así:
 app.put('/api/productos/:id', (req, res) => {
     const { id } = req.params;
     const { nombre, id_categoria, id_proveedor, stock_actual, precio_venta } = req.body;
