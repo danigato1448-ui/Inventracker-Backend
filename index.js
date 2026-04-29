@@ -244,15 +244,34 @@ app.post('/api/productos', (req, res) => {
 // Actualizar Producto
 app.put('/api/productos/:id', (req, res) => {
     const { id } = req.params;
-    const { nombre, referencia, id_categoria, stock_actual, precio_venta } = req.body;
-    const sql = `UPDATE productos SET nombre_producto = ?, referencia = ?, id_categoria = ?, stock_actual = ?, precio_venta = ? 
+    const { nombre, id_categoria, id_proveedor, stock_actual, precio_venta } = req.body;
+    
+    const sql = `UPDATE productos SET nombre_producto = ?, id_categoria = ?, id_proveedor = ?, stock_actual = ?, precio_venta = ? 
                  WHERE id_producto = ?`;
     
-    db.query(sql, [nombre, referencia, id_categoria, stock_actual, precio_venta, id], (err, result) => {
+    db.query(sql, [nombre, id_categoria, id_proveedor, stock_actual, precio_venta, id], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json({ success: true });
     });
 });
+
+// Obtener todas las categorías
+app.get('/api/categorias', (req, res) => {
+    db.query('SELECT id_categoria, nombre_categoria FROM categorias', (err, results) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        res.json(results);
+    });
+});
+
+// Obtener todos los proveedores
+app.get('/api/proveedores', (req, res) => {
+    db.query('SELECT id_proveedor, nombre_proveedor FROM proveedores', (err, results) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        res.json(results);
+    });
+});
+
+
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
