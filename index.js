@@ -278,7 +278,20 @@ app.delete('/api/productos/:id', (req, res) => {
         res.json({ success: true, message: "Producto eliminado correctamente" });
     });
 });
+// ==================== RUTAS DE PROVEEDORES ====================
 
+// Crear Proveedores
+app.post('/api/proveedor', (req, res) => {
+    const { nombre, contacto, nit, contacto, telefono, email, ciudad } = req.body;
+    const sql = `INSERT INTO proveedores (nombre_proveedor, nit, contacto, telefono, email) 
+                 VALUES (?, ?, ?, ?, ?)`;
+    
+    db.query(sql, [nombre, contacto, telefono, email, ciudad], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        res.status(201).json({ success: true, id: result.insertId });
+    });
+});
+// ==================== RUTA PARA ELIMINAR PROVEEDOR ====================
 app.delete('/api/proveedor/:id', (req, res) => {
     const { id } = req.params;
 
