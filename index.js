@@ -279,6 +279,28 @@ app.delete('/api/productos/:id', (req, res) => {
     });
 });
 
+app.delete('/api/proveedor/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Usamos el ID que viene de la URL para borrar la fila exacta
+    const sql = "DELETE FROM proveedor WHERE id_proveedor = ?";
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Error al eliminar de la DB:", err);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
+
+        // Si result.affectedRows es 0, significa que el ID no existía
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Proveedor no encontrado" });
+        }
+
+        console.log(`🗑️ Producto con ID ${id} eliminado de la base de datos`);
+        res.json({ success: true, message: "Proveedor eliminado correctamente" });
+    });
+});
+
 // Obtener todas las categorías
 app.get('/api/categorias', (req, res) => {
     db.query('SELECT id_categoria, nombre_categoria FROM categorias', (err, results) => {
