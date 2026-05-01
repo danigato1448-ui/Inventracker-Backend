@@ -296,7 +296,7 @@ app.delete('/api/proveedor/:id', (req, res) => {
     const { id } = req.params;
 
     // Usamos el ID que viene de la URL para borrar la fila exacta
-    const sql = "DELETE FROM proveedor WHERE id_proveedor = ?";
+    const sql = "DELETE FROM proveedores WHERE id_proveedor = ?";
 
     db.query(sql, [id], (err, result) => {
         if (err) {
