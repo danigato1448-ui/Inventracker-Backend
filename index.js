@@ -282,11 +282,11 @@ app.delete('/api/productos/:id', (req, res) => {
 
 // Crear Proveedores
 app.post('/api/proveedor', (req, res) => {
-    const { nombre, contacto, nit, contacto, telefono, email, ciudad } = req.body;
-    const sql = `INSERT INTO proveedores (nombre_proveedor, nit, contacto, telefono, email) 
-                 VALUES (?, ?, ?, ?, ?)`;
+    const { nombre, contacto, nit, telefono, email, ciudad } = req.body;
+    const sql = `INSERT INTO proveedores (nombre_proveedor, contacto, nit, telefono, email, ciudad) 
+                 VALUES (?, ?, ?, ?, ?, ?)`;
     
-    db.query(sql, [nombre, contacto, telefono, email, ciudad], (err, result) => {
+    db.query(sql, [nombre, contacto,nit, telefono, email, ciudad], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.status(201).json({ success: true, id: result.insertId });
     });
