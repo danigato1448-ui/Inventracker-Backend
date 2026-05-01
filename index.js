@@ -289,7 +289,7 @@ app.get('/api/categorias', (req, res) => {
 
 // Obtener todos los proveedores
 app.get('/api/proveedores', (req, res) => {
-    db.query('SELECT id_proveedor, nombre_proveedor FROM proveedores', (err, results) => {
+    db.query('SELECT id_proveedor, nombre_proveedor, contacto, telefono, email, ciudad FROM proveedores', (err, results) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json(results);
     });
