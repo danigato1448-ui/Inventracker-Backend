@@ -59,7 +59,8 @@ app.post('/api/login', (req, res) => {
                 message: "Autenticación satisfactoria",
                 user: results[0].usuario,
                 rol: results[0].rol, 
-                estado: results[0].estado
+                estado: results[0].estado,
+                user_id: results[0].id_usuario
             });
         } else {
             return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
@@ -329,8 +330,6 @@ app.get('/api/proveedores', (req, res) => {
         res.json(results);
     });
 });
-
-// --- RUTAS PARA MOVIMIENTOS EN INDEX.JS ---
 
 // --- RUTAS PARA MOVIMIENTOS ---
 
