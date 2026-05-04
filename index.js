@@ -292,7 +292,7 @@ app.post('/api/proveedor', (req, res) => {
     });
 });
 // ==================== RUTA PARA ELIMINAR PROVEEDOR ====================
-app.delete('/api/proveedor/:id', (req, res) => {
+app.delete('/api/proveedores/:id', (req, res) => {
     const { id } = req.params;
 
     // Usamos el ID que viene de la URL para borrar la fila exacta
@@ -309,7 +309,7 @@ app.delete('/api/proveedor/:id', (req, res) => {
             return res.status(404).json({ message: "Proveedor no encontrado" });
         }
 
-        console.log(`🗑️ Producto con ID ${id} eliminado de la base de datos`);
+        console.log(`🗑️ Proveedor con ID ${id} eliminado de la base de datos`);
         res.json({ success: true, message: "Proveedor eliminado correctamente" });
     });
 });
