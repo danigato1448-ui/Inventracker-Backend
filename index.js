@@ -330,6 +330,55 @@ app.get('/api/proveedores', (req, res) => {
     });
 });
 
+// --- RUTAS PARA MOVIMIENTOS EN INDEX.JS ---
+
+// 1. Obtener todos los movimientos con el nombre del producto
+app.get('/api/movimientos', (req, res) => {
+    const query = `
+        SELECT m.*, p.nombre_producto 
+        FROM movimientos m 
+        JOIN productos p ON m.id_producto = p.id_producto 
+        ORDER BY m.fecha DESC`;
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).send(err);
+        res.json(results);
+    });
+});
+
+// 2. Obtener estadísticas para las cards
+app.get('/api/movimientos/stats', (req, res) => {
+    const query = `
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN tipo_movimiento = 'Entrada' THEN 1 ELSE 0 END) as entradas,
+            SUM(CASE WHEN tipo_movimiento = 'Salida' THEN 1 ELSE 0 END) as salidas
+        FROM movimientos`;
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).send(err);
+        res.json(results[0]);
+    });
+});
+
+// 3. Registrar movimiento y ACTUALIZAR STOCK automáticamente
+app.post('/api/movimientos', (req, res) => {
+    const { id_producto, tipo_movimiento, cantidad, fecha, observaciones, id_usuario } = req.body;
+    
+    // Inserción del movimiento
+    const sqlMov = "INSERT INTO movimientos (id_producto, tipo_movimiento, cantidad, fecha, observaciones, id_usuario) VALUES (?, ?, ?, ?, ?, ?)";
+    
+    db.query(sqlMov, [id_producto, tipo_movimiento, cantidad, fecha, observaciones, id_usuario], (err, result) => {
+        if (err) return res.status(500).send(err);
+
+        // Lógica de actualización de stock
+        let operacion = tipo_movimiento === 'Entrada' ? '+' : '-';
+        const sqlUpdateStock = `UPDATE productos SET stock = stock ${operacion} ? WHERE id_producto = ?`;
+
+        db.query(sqlUpdateStock, [cantidad, id_producto], (errUpdate) => {
+            if (errUpdate) return res.status(500).send(errUpdate);
+            res.json({ message: "Movimiento registrado y stock actualizado" });
+        });
+    });
+});
 
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
