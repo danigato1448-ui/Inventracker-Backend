@@ -364,28 +364,26 @@ app.get('/api/movimientos/stats', (req, res) => {
 });
 
 // 3. Registrar movimiento y actualizar STOCK_ACTUAL
+// --- REGISTRAR MOVIMIENTO (Traduciendo palabras a números) ---
 app.post('/api/movimientos', (req, res) => {
-    const { id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones } = req.body;
+    // Recibimos 'tipo_movimiento' como palabra desde el frontend
+    const { id_producto, tipo_movimiento, cantidad, fecha, id_usuario, observaciones } = req.body;
     
+    // Traducimos para la base de datos: Entrada = 1, Salida = 2
+    const id_tipo = (tipo_movimiento === 'Entrada') ? 1 : 2;
+    const operacion = (tipo_movimiento === 'Entrada') ? '+' : '-';
+
     const sqlMov = "INSERT INTO movimientos (id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones) VALUES (?, ?, ?, ?, ?, ?)";
     
     db.query(sqlMov, [id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones], (err, result) => {
-        if (err) {
-            console.error("Error en inserción:", err);
-            return res.status(500).send("Error al registrar movimiento");
-        }
+        if (err) return res.status(500).send("Error al registrar movimiento");
 
-        // Lógica de Stock: 1 = Entrada (+), 2 = Salida (-)
-        // IMPORTANTE: Se usa 'stock_actual' según tu imagen de la tabla productos
-        let operacion = (parseInt(id_tipo) === 1) ? '+' : '-';
+        // Usamos la operación (+ o -) según el texto recibido
         const sqlUpdateStock = `UPDATE productos SET stock_actual = stock_actual ${operacion} ? WHERE id_producto = ?`;
 
         db.query(sqlUpdateStock, [cantidad, id_producto], (errUpdate) => {
-            if (errUpdate) {
-                console.error("Error al actualizar stock:", errUpdate);
-                return res.status(500).send("Error al actualizar stock del producto");
-            }
-            res.json({ message: "Movimiento registrado y stock_actual actualizado" });
+            if (errUpdate) return res.status(500).send("Error al actualizar stock");
+            res.json({ message: "Movimiento registrado con éxito" });
         });
     });
 });
