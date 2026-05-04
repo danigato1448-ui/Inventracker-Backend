@@ -332,50 +332,60 @@ app.get('/api/proveedores', (req, res) => {
 
 // --- RUTAS PARA MOVIMIENTOS EN INDEX.JS ---
 
-// 1. Obtener todos los movimientos con el nombre del producto
+// --- RUTAS PARA MOVIMIENTOS ---
+
+// 1. Obtener historial (Uniendo con productos para el nombre)
 app.get('/api/movimientos', (req, res) => {
     const query = `
-        SELECT m.*, p.nombre_producto 
+        SELECT m.id_movimiento, m.id_producto, p.nombre_producto, m.id_tipo, m.cantidad, m.fecha, m.id_usuario, m.observaciones 
         FROM movimientos m 
         JOIN productos p ON m.id_producto = p.id_producto 
         ORDER BY m.fecha DESC`;
+    
     db.query(query, (err, results) => {
         if (err) return res.status(500).send(err);
         res.json(results);
     });
 });
 
-// 2. Obtener estadísticas para las cards
+// 2. Estadísticas para las cards
 app.get('/api/movimientos/stats', (req, res) => {
     const query = `
         SELECT 
             COUNT(*) as total,
-            SUM(CASE WHEN tipo_movimiento = 'Entrada' THEN 1 ELSE 0 END) as entradas,
-            SUM(CASE WHEN tipo_movimiento = 'Salida' THEN 1 ELSE 0 END) as salidas
+            SUM(CASE WHEN id_tipo = 1 THEN 1 ELSE 0 END) as entradas,
+            SUM(CASE WHEN id_tipo = 2 THEN 1 ELSE 0 END) as salidas
         FROM movimientos`;
+    
     db.query(query, (err, results) => {
         if (err) return res.status(500).send(err);
-        res.json(results[0]);
+        res.json(results[0] || { total: 0, entradas: 0, salidas: 0 });
     });
 });
 
-// 3. Registrar movimiento y ACTUALIZAR STOCK automáticamente
+// 3. Registrar movimiento y actualizar STOCK_ACTUAL
 app.post('/api/movimientos', (req, res) => {
-    const { id_producto, tipo_movimiento, cantidad, fecha, observaciones, id_usuario } = req.body;
+    const { id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones } = req.body;
     
-    // Inserción del movimiento
-    const sqlMov = "INSERT INTO movimientos (id_producto, tipo_movimiento, cantidad, fecha, observaciones, id_usuario) VALUES (?, ?, ?, ?, ?, ?)";
+    const sqlMov = "INSERT INTO movimientos (id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones) VALUES (?, ?, ?, ?, ?, ?)";
     
-    db.query(sqlMov, [id_producto, tipo_movimiento, cantidad, fecha, observaciones, id_usuario], (err, result) => {
-        if (err) return res.status(500).send(err);
+    db.query(sqlMov, [id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones], (err, result) => {
+        if (err) {
+            console.error("Error en inserción:", err);
+            return res.status(500).send("Error al registrar movimiento");
+        }
 
-        // Lógica de actualización de stock
-        let operacion = tipo_movimiento === 'Entrada' ? '+' : '-';
-        const sqlUpdateStock = `UPDATE productos SET stock = stock ${operacion} ? WHERE id_producto = ?`;
+        // Lógica de Stock: 1 = Entrada (+), 2 = Salida (-)
+        // IMPORTANTE: Se usa 'stock_actual' según tu imagen de la tabla productos
+        let operacion = (parseInt(id_tipo) === 1) ? '+' : '-';
+        const sqlUpdateStock = `UPDATE productos SET stock_actual = stock_actual ${operacion} ? WHERE id_producto = ?`;
 
         db.query(sqlUpdateStock, [cantidad, id_producto], (errUpdate) => {
-            if (errUpdate) return res.status(500).send(errUpdate);
-            res.json({ message: "Movimiento registrado y stock actualizado" });
+            if (errUpdate) {
+                console.error("Error al actualizar stock:", errUpdate);
+                return res.status(500).send("Error al actualizar stock del producto");
+            }
+            res.json({ message: "Movimiento registrado y stock_actual actualizado" });
         });
     });
 });
