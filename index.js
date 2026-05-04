@@ -82,7 +82,7 @@ app.get('/api/dashboard-stats', (req, res) => {
     });
 });
 
-app.get('/productos', (req, res) => {
+app.get('/api/productos', (req, res) => {
     // Esta consulta obliga a la DB a buscar el nombre en la tabla categorias
     const sql = `
         SELECT 
@@ -363,8 +363,7 @@ app.get('/api/movimientos/stats', (req, res) => {
     });
 });
 
-// 3. Registrar movimiento y actualizar STOCK_ACTUAL
-// --- REGISTRAR MOVIMIENTO (Traduciendo palabras a números) ---
+// 3. REGISTRAR MOVIMIENTO (Traduciendo palabras a números) ---
 app.post('/api/movimientos', (req, res) => {
     // Recibimos 'tipo_movimiento' como palabra desde el frontend
     const { id_producto, tipo_movimiento, cantidad, fecha, id_usuario, observaciones } = req.body;
