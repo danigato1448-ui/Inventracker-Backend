@@ -431,6 +431,7 @@ app.delete('/api/movimientos/:id', (req, res) => {
 });
 
 // 2. EDITAR MOVIMIENTO (Nueva ruta)
+// BUSCA Y REEMPLAZA ESTA RUTA EN TU index_2.js
 app.put('/api/movimientos/:id', (req, res) => {
     const id_movimiento = req.params.id;
     const { cantidad_nueva, observaciones_nuevas } = req.body;
@@ -440,17 +441,28 @@ app.put('/api/movimientos/:id', (req, res) => {
 
     const sqlOriginal = "SELECT id_producto, id_tipo, cantidad FROM movimientos WHERE id_movimiento = ?";
     db.query(sqlOriginal, [id_movimiento], (err, results) => {
-        if (err || results.length === 0) return res.status(500).send("Error");
+        if (err || results.length === 0) {
+            console.error("Error al buscar movimiento original:", err);
+            return res.status(500).send("Error al buscar el movimiento");
+        }
 
         const { id_producto, id_tipo, cantidad } = results[0];
-        const diferencia = cantidad_nueva - cantidad;
+        // Calculamos la diferencia: lo nuevo menos lo viejo
+        const diferencia = parseInt(cantidad_nueva) - cantidad;
+        
+        // Si es Entrada (1), sumamos la diferencia al stock. Si es Salida (2), la restamos.
         const operacionStock = (id_tipo === 1) ? '+' : '-';
 
         const sqlUpdateMov = "UPDATE movimientos SET cantidad = ?, observaciones = ? WHERE id_movimiento = ?";
         db.query(sqlUpdateMov, [cantidad_nueva, observaciones_nuevas, id_movimiento], (errUpd) => {
+            if (errUpd) return res.status(500).send("Error al actualizar registro");
+
             const sqlUpdateStock = `UPDATE productos SET stock_actual = stock_actual ${operacionStock} ? WHERE id_producto = ?`;
             db.query(sqlUpdateStock, [diferencia, id_producto], (errStock) => {
-                res.json({ success: true });
+                if (errStock) return res.status(500).send("Error al actualizar stock");
+                
+                // IMPORTANTE: Enviamos un JSON de éxito para que el frontend lo reciba bien
+                res.json({ success: true, message: "Movimiento y stock actualizados" });
             });
         });
     });
