@@ -363,26 +363,40 @@ app.get('/api/movimientos/stats', (req, res) => {
     });
 });
 
-// 3. REGISTRAR MOVIMIENTO (Traduciendo palabras a números) ---
 app.post('/api/movimientos', (req, res) => {
-    // Recibimos 'tipo_movimiento' como palabra desde el frontend
     const { id_producto, tipo_movimiento, cantidad, fecha, id_usuario, observaciones } = req.body;
     
-    // Traducimos para la base de datos: Entrada = 1, Salida = 2
+    // 1. Forzamos que los números sean números para evitar líos con MySQL
+    const numProducto = parseInt(id_producto);
+    const numCantidad = parseInt(cantidad);
+    const numUsuario = parseInt(id_usuario);
     const id_tipo = (tipo_movimiento === 'Entrada') ? 1 : 2;
-    const operacion = (tipo_movimiento === 'Entrada') ? '+' : '-';
 
+    // 2. Insertamos el movimiento
     const sqlMov = "INSERT INTO movimientos (id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones) VALUES (?, ?, ?, ?, ?, ?)";
     
-    db.query(sqlMov, [id_producto, id_tipo, cantidad, fecha, id_usuario, observaciones], (err, result) => {
-        if (err) return res.status(500).send("Error al registrar movimiento");
+    db.query(sqlMov, [numProducto, id_tipo, numCantidad, fecha, numUsuario, observaciones], (err, result) => {
+        if (err) {
+            console.error("❌ Error en INSERT:", err.message);
+            return res.status(500).send("Error al registrar movimiento: " + err.message);
+        }
 
-        // Usamos la operación (+ o -) según el texto recibido
-        const sqlUpdateStock = `UPDATE productos SET stock_actual = stock_actual ${operacion} ? WHERE id_producto = ?`;
+        // 3. ACTUALIZACIÓN DE STOCK (Sintaxis corregida)
+        // En lugar de usar ${operacion}, usamos IF para que MySQL decida qué hacer
+        const sqlUpdateStock = `
+            UPDATE productos 
+            SET stock_actual = CASE 
+                WHEN ? = 1 THEN stock_actual + ? 
+                WHEN ? = 2 THEN stock_actual - ? 
+            END 
+            WHERE id_producto = ?`;
 
-        db.query(sqlUpdateStock, [cantidad, id_producto], (errUpdate) => {
-            if (errUpdate) return res.status(500).send("Error al actualizar stock");
-            res.json({ message: "Movimiento registrado con éxito" });
+        db.query(sqlUpdateStock, [id_tipo, numCantidad, id_tipo, numCantidad, numProducto], (errUpdate) => {
+            if (errUpdate) {
+                console.error("❌ Error en UPDATE Stock:", errUpdate.message);
+                return res.status(500).send("Movimiento creado pero falló el stock");
+            }
+            res.json({ success: true, message: "Movimiento registrado con éxito" });
         });
     });
 });
