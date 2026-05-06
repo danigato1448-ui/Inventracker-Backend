@@ -401,6 +401,62 @@ app.post('/api/movimientos', (req, res) => {
     });
 });
 
+// REEMPLAZA EL DELETE Y PEGA EL PUT EN TU index.js
+
+// 1. ELIMINAR MOVIMIENTO (Actualizado con seguridad)
+app.delete('/api/movimientos/:id', (req, res) => {
+    const id_movimiento = req.params.id;
+    const userRole = req.headers['user-role'];
+
+    if (userRole !== 'Administrador') {
+        return res.status(403).send("Acceso denegado: Se requiere rol de Administrador");
+    }
+
+    const sqlSelect = "SELECT id_producto, id_tipo, cantidad FROM movimientos WHERE id_movimiento = ?";
+    db.query(sqlSelect, [id_movimiento], (err, results) => {
+        if (err || results.length === 0) return res.status(500).send("Movimiento no encontrado");
+
+        const { id_producto, id_tipo, cantidad } = results[0];
+        const operacion = (id_tipo === 1) ? '-' : '+';
+
+        db.query("DELETE FROM movimientos WHERE id_movimiento = ?", [id_movimiento], (errDel) => {
+            if (errDel) return res.status(500).send("Error al eliminar");
+
+            const sqlUpdate = `UPDATE productos SET stock_actual = stock_actual ${operacion} ? WHERE id_producto = ?`;
+            db.query(sqlUpdate, [cantidad, id_producto], (errUpd) => {
+                res.json({ message: "Eliminado y stock ajustado" });
+            });
+        });
+    });
+});
+
+// 2. EDITAR MOVIMIENTO (Nueva ruta)
+app.put('/api/movimientos/:id', (req, res) => {
+    const id_movimiento = req.params.id;
+    const { cantidad_nueva, observaciones_nuevas } = req.body;
+    const userRole = req.headers['user-role'];
+
+    if (userRole !== 'Administrador') return res.status(403).send("No autorizado");
+
+    const sqlOriginal = "SELECT id_producto, id_tipo, cantidad FROM movimientos WHERE id_movimiento = ?";
+    db.query(sqlOriginal, [id_movimiento], (err, results) => {
+        if (err || results.length === 0) return res.status(500).send("Error");
+
+        const { id_producto, id_tipo, cantidad } = results[0];
+        const diferencia = cantidad_nueva - cantidad;
+        const operacionStock = (id_tipo === 1) ? '+' : '-';
+
+        const sqlUpdateMov = "UPDATE movimientos SET cantidad = ?, observaciones = ? WHERE id_movimiento = ?";
+        db.query(sqlUpdateMov, [cantidad_nueva, observaciones_nuevas, id_movimiento], (errUpd) => {
+            const sqlUpdateStock = `UPDATE productos SET stock_actual = stock_actual ${operacionStock} ? WHERE id_producto = ?`;
+            db.query(sqlUpdateStock, [diferencia, id_producto], (errStock) => {
+                res.json({ success: true });
+            });
+        });
+    });
+});
+
+
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
