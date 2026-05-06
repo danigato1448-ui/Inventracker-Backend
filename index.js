@@ -45,7 +45,7 @@ app.post('/api/login', (req, res) => {
     const { usuario, password } = req.body;
     console.log(`Intentando login para: ${usuario}`);
 
-    const sql = 'SELECT usuario, rol, estado FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
+    const sql = 'SELECT id_usuario, usuario, rol, estado FROM usuarios WHERE usuario = ? AND password = ? AND estado = "Activo"';
 
     db.query(sql, [usuario, password], (err, results) => {
         if (err) {
@@ -54,13 +54,14 @@ app.post('/api/login', (req, res) => {
         }
         
         if (results.length > 0) {
+            // AQUÍ ENVIAMOS EL ID CORRECTO AL FRONTEND
             return res.json({ 
                 success: true, 
                 message: "Autenticación satisfactoria",
                 user: results[0].usuario,
                 rol: results[0].rol, 
                 estado: results[0].estado,
-                user_id: results[0].id_usuario
+                user_id: results[0].id_usuario // <--- IMPORTANTE: Este nombre debe coincidir con el login.html
             });
         } else {
             return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
