@@ -437,37 +437,34 @@ app.put('/api/movimientos/:id', (req, res) => {
     const { cantidad_nueva, observaciones_nuevas } = req.body;
     const userRole = req.headers['user-role'];
 
+    // 1. Verificación de seguridad
     if (userRole !== 'Administrador') return res.status(403).send("No autorizado");
 
+    // 2. Obtener datos antiguos para recalcular el stock
     const sqlOriginal = "SELECT id_producto, id_tipo, cantidad FROM movimientos WHERE id_movimiento = ?";
     db.query(sqlOriginal, [id_movimiento], (err, results) => {
-        if (err || results.length === 0) {
-            console.error("Error al buscar movimiento original:", err);
-            return res.status(500).send("Error al buscar el movimiento");
-        }
+        if (err || results.length === 0) return res.status(500).send("Movimiento no encontrado");
 
         const { id_producto, id_tipo, cantidad } = results[0];
-        // Calculamos la diferencia: lo nuevo menos lo viejo
         const diferencia = parseInt(cantidad_nueva) - cantidad;
-        
-        // Si es Entrada (1), sumamos la diferencia al stock. Si es Salida (2), la restamos.
         const operacionStock = (id_tipo === 1) ? '+' : '-';
 
+        // 3. Actualizar el registro del movimiento
         const sqlUpdateMov = "UPDATE movimientos SET cantidad = ?, observaciones = ? WHERE id_movimiento = ?";
         db.query(sqlUpdateMov, [cantidad_nueva, observaciones_nuevas, id_movimiento], (errUpd) => {
             if (errUpd) return res.status(500).send("Error al actualizar registro");
 
+            // 4. Ajustar el stock del producto basándose en la diferencia
             const sqlUpdateStock = `UPDATE productos SET stock_actual = stock_actual ${operacionStock} ? WHERE id_producto = ?`;
             db.query(sqlUpdateStock, [diferencia, id_producto], (errStock) => {
-                if (errStock) return res.status(500).send("Error al actualizar stock");
+                if (errStock) return res.status(500).send("Error al ajustar stock");
                 
-                // IMPORTANTE: Enviamos un JSON de éxito para que el frontend lo reciba bien
-                res.json({ success: true, message: "Movimiento y stock actualizados" });
+                // IMPORTANTE: Responder con JSON para que el fetch del front no falle
+                res.json({ success: true, message: "¡Inventario actualizado!" });
             });
         });
     });
 });
-
 
 // ==================== INICIO DEL SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
