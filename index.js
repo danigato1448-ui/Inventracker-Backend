@@ -244,13 +244,19 @@ app.post('/api/productos', (req, res) => {
 });
 
 // Actualizar Producto
-// En tu index.js, busca la ruta PUT de productos y déjala así:
 app.put('/api/productos/:id', (req, res) => {
+    
     const { id } = req.params;
     const { nombre, id_categoria, id_proveedor, stock_actual, precio_venta } = req.body;
     
     const sql = `UPDATE productos SET nombre_producto = ?, id_categoria = ?, id_proveedor = ?, stock_actual = ?, precio_venta = ? 
                  WHERE id_producto = ?`;
+
+    crearAlerta('Producto Modificado', `Se actualizaron los datos del producto ID: ${id}`, 'info', 'Admin');
+
+await db.query('UPDATE productos SET ... WHERE id = ?', [id]);
+await db.query('INSERT INTO notificaciones (titulo, mensaje, tipo, usuario) VALUES (?, ?, ?, ?)', 
+    ['Producto Actualizado', `Se modificó el producto ID: ${id}`, 'info', 'Admin']);
     
     db.query(sql, [nombre, id_categoria, id_proveedor, stock_actual, precio_venta, id], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
@@ -264,6 +270,8 @@ app.delete('/api/productos/:id', (req, res) => {
 
     // Usamos el ID que viene de la URL para borrar la fila exacta
     const sql = "DELETE FROM productos WHERE id_producto = ?";
+
+    crearAlerta('Producto Eliminado', `El producto con ID: ${id} fue removido del sistema`, 'warning', 'Admin');
 
     db.query(sql, [id], (err, result) => {
         if (err) {
@@ -381,6 +389,14 @@ app.post('/api/movimientos', (req, res) => {
             return res.status(500).send("Error al registrar movimiento: " + err.message);
         }
 
+        if (id_tipo === 1) { // Si es tipo 1 (Entrada), viene de un proveedor
+            crearAlerta(
+                '📦 Recepción de Pedido', 
+                `Se recibió una entrada de ${numCantidad} unidades para el producto ID: ${numProducto}.`, 
+                'success', 
+                'Sistema'
+            );
+        }
         // 3. ACTUALIZACIÓN DE STOCK (Sintaxis corregida)
         // En lugar de usar ${operacion}, usamos IF para que MySQL decida qué hacer
         const sqlUpdateStock = `
@@ -392,12 +408,21 @@ app.post('/api/movimientos', (req, res) => {
             WHERE id_producto = ?`;
 
         db.query(sqlUpdateStock, [id_tipo, numCantidad, id_tipo, numCantidad, numProducto], (errUpdate) => {
-            if (errUpdate) {
-                console.error("❌ Error en UPDATE Stock:", errUpdate.message);
-                return res.status(500).send("Movimiento creado pero falló el stock");
+    if (errUpdate) return res.status(500).send("Error al actualizar stock");
+
+    // --- NUEVO: Verificar stock bajo tras el movimiento ---
+    const sqlCheck = "SELECT nombre_producto, stock_actual, stock_minimo FROM productos WHERE id_producto = ?";
+    db.query(sqlCheck, [numProducto], (errCheck, results) => {
+        if (results.length > 0) {
+            const p = results[0];
+            if (p.stock_actual <= p.stock_minimo) {
+                crearAlerta('⚠️ Stock Bajo', `El producto ${p.nombre_producto} llegó a ${p.stock_actual} unidades.`, 'danger');
             }
-            res.json({ success: true, message: "Movimiento registrado con éxito" });
-        });
+        }
+    });
+
+    res.json({ success: true, message: "Movimiento registrado" });
+});
     });
 });
 
@@ -463,6 +488,28 @@ app.put('/api/movimientos/:id', (req, res) => {
                 res.json({ success: true, message: "¡Inventario actualizado!" });
             });
         });
+    });
+});
+
+// Función reutilizable para crear alertas
+function crearAlerta(titulo, mensaje, tipo, usuario = 'Sistema') {
+    const sql = 'INSERT INTO notificaciones (titulo, mensaje, tipo, usuario) VALUES (?, ?, ?, ?)';
+    db.query(sql, [titulo, mensaje, tipo, usuario], (err) => {
+        if (err) console.error("❌ Error al crear alerta automática:", err.message);
+    });
+}
+
+app.get('/api/notificaciones', (req, res) => {
+    db.query('SELECT * FROM notificaciones ORDER BY fecha DESC LIMIT 20', (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+});
+
+app.delete('/api/notificaciones/:id', (req, res) => {
+    db.query('DELETE FROM notificaciones WHERE id = ?', [req.params.id], (err) => {
+        if (err) return res.status(500).json(err);
+        res.json({ success: true });
     });
 });
 
