@@ -39,6 +39,13 @@ db.connect((err) => {
     console.log('✅ ¡Conexión exitosa a MySQL!');
 });
 
+function crearAlerta(titulo, mensaje, tipo, usuario = 'Sistema') {
+    const sql = 'INSERT INTO notificaciones (titulo, mensaje, tipo, usuario) VALUES (?, ?, ?, ?)';
+    db.query(sql, [titulo, mensaje, tipo, usuario], (err) => {
+        if (err) console.error("❌ Error al crear alerta automática:", err.message);
+    });
+}
+
 // ==================== RUTAS ====================
 
 app.post('/api/login', (req, res) => {
@@ -243,35 +250,29 @@ app.post('/api/productos', (req, res) => {
     });
 });
 
-// Actualizar Producto
+// CORRECCIÓN: Ruta de Actualizar Producto (Asegúrate de que NO tenga async si usas callbacks)
 app.put('/api/productos/:id', (req, res) => {
-    
     const { id } = req.params;
     const { nombre, id_categoria, id_proveedor, stock_actual, precio_venta } = req.body;
     
     const sql = `UPDATE productos SET nombre_producto = ?, id_categoria = ?, id_proveedor = ?, stock_actual = ?, precio_venta = ? 
                  WHERE id_producto = ?`;
-
-    crearAlerta('Producto Modificado', `Se actualizaron los datos del producto ID: ${id}`, 'info', 'Admin');
-
-await db.query('UPDATE productos SET ... WHERE id = ?', [id]);
-await db.query('INSERT INTO notificaciones (titulo, mensaje, tipo, usuario) VALUES (?, ?, ?, ?)', 
-    ['Producto Actualizado', `Se modificó el producto ID: ${id}`, 'info', 'Admin']);
     
     db.query(sql, [nombre, id_categoria, id_proveedor, stock_actual, precio_venta, id], (err, result) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (err) {
+            console.error("Error al actualizar:", err);
+            return res.status(500).json({ error: err.sqlMessage });
+        }
+
+        crearAlerta('Producto Actualizado', `Se modificó el producto: ${nombre} (ID: ${id})`, 'info', 'Admin');
         res.json({ success: true });
     });
 });
 
-// ==================== RUTA PARA ELIMINAR PRODUCTO ====================
+// CORRECCIÓN: Ruta de Eliminar Producto (Asegúrate de que esté así)
 app.delete('/api/productos/:id', (req, res) => {
     const { id } = req.params;
-
-    // Usamos el ID que viene de la URL para borrar la fila exacta
     const sql = "DELETE FROM productos WHERE id_producto = ?";
-
-    crearAlerta('Producto Eliminado', `El producto con ID: ${id} fue removido del sistema`, 'warning', 'Admin');
 
     db.query(sql, [id], (err, result) => {
         if (err) {
@@ -279,12 +280,14 @@ app.delete('/api/productos/:id', (req, res) => {
             return res.status(500).json({ error: err.sqlMessage });
         }
 
-        // Si result.affectedRows es 0, significa que el ID no existía
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Producto no encontrado" });
         }
 
-        console.log(`🗑️ Producto con ID ${id} eliminado de la base de datos`);
+        // Llamamos a la alerta DESPUÉS de confirmar que se borró
+        crearAlerta('Producto Eliminado', `El producto con ID: ${id} fue removido del sistema`, 'warning', 'Admin');
+
+        console.log(`🗑️ Producto con ID ${id} eliminado`);
         res.json({ success: true, message: "Producto eliminado correctamente" });
     });
 });
@@ -490,14 +493,6 @@ app.put('/api/movimientos/:id', (req, res) => {
         });
     });
 });
-
-// Función reutilizable para crear alertas
-function crearAlerta(titulo, mensaje, tipo, usuario = 'Sistema') {
-    const sql = 'INSERT INTO notificaciones (titulo, mensaje, tipo, usuario) VALUES (?, ?, ?, ?)';
-    db.query(sql, [titulo, mensaje, tipo, usuario], (err) => {
-        if (err) console.error("❌ Error al crear alerta automática:", err.message);
-    });
-}
 
 app.get('/api/notificaciones', (req, res) => {
     db.query('SELECT * FROM notificaciones ORDER BY fecha DESC LIMIT 20', (err, results) => {
