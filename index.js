@@ -203,6 +203,8 @@ app.delete('/api/usuarios/:id', (req, res) => {
             return res.status(404).json({ message: "Usuario no encontrado" });
         }
 
+        crearAlerta('Usuario Eliminado', `El usuario con ID ${id} fue removido`, 'danger', 'Admin');
+
         console.log(`🗑️ Usuario con ID ${id} eliminado correctamente`);
         res.json({ success: true, message: "Usuario eliminado con éxito" });
     });
@@ -227,6 +229,8 @@ app.post('/api/usuarios', (req, res) => {
             return res.status(500).json({ error: err.sqlMessage });
         }
         
+        crearAlerta('Nuevo Usuario', `Se registró a ${nombre} como ${textoRol}`, 'success', 'Sistema');
+
         console.log("✅ Nuevo usuario creado con éxito");
         res.status(201).json({ 
             success: true, 
@@ -246,6 +250,9 @@ app.post('/api/productos', (req, res) => {
     
     db.query(sql, [nombre, referencia, id_categoria, id_proveedor, stock_actual, stock_minimo, precio_venta], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
+
+        crearAlerta('Nuevo Producto', `Se registró el producto: ${nombre} con stock inicial de ${stock_actual}`, 'success', 'Sistema');
+        
         res.status(201).json({ success: true, id: result.insertId });
     });
 });
@@ -301,6 +308,9 @@ app.post('/api/proveedor', (req, res) => {
     
     db.query(sql, [nombre, contacto,nit, telefono, email, ciudad], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
+
+        crearAlerta('Nuevo Proveedor', `Se agregó al proveedor: ${nombre}`, 'success', 'Sistema');
+
         res.status(201).json({ success: true, id: result.insertId });
     });
 });
@@ -321,6 +331,8 @@ app.delete('/api/proveedores/:id', (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Proveedor no encontrado" });
         }
+
+        crearAlerta('Proveedor Eliminado', `Se eliminó al proveedor con ID: ${id}`, 'warning', 'Admin');
 
         console.log(`🗑️ Proveedor con ID ${id} eliminado de la base de datos`);
         res.json({ success: true, message: "Proveedor eliminado correctamente" });
