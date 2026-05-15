@@ -245,6 +245,15 @@ app.post('/api/usuarios', (req, res) => {
 // Crear Producto 
 app.post('/api/productos', (req, res) => {
     const { nombre, referencia, id_categoria, id_proveedor, stock_actual, stock_minimo, precio_venta } = req.body;
+
+    // VALIDACIÓN: Evitar stock negativo
+    if (parseInt(stock_actual) < 0 || parseInt(stock_minimo) < 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "El stock no puede ser un valor negativo." 
+        });
+    }
+
     const sql = `INSERT INTO productos (nombre_producto, referencia, id_categoria, id_proveedor, stock_actual, stock_minimo, precio_venta) 
                  VALUES (?, ?, ?, ?, ?, ?, ?)`;
     
