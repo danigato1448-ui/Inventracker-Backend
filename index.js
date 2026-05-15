@@ -413,6 +413,17 @@ app.post('/api/movimientos', (req, res) => {
             return res.status(500).send("Error al registrar movimiento: " + err.message);
         }
 
+    // --- CORRECCIÓN AQUÍ: Verificar si bajó del mínimo ---
+    const sqlCheck = "SELECT nombre_producto, stock_actual, stock_minimo FROM productos WHERE id_producto = ?";
+    db.query(sqlCheck, [numProducto], (errCheck, results) => {
+        if (!errCheck && results.length > 0) {
+            const p = results[0];
+            if (p.stock_actual <= p.stock_minimo) {
+                crearAlerta('⚠️ Stock Bajo', `El producto ${p.nombre_producto} llegó a su límite: ${p.stock_actual} unidades.`, 'danger', 'Sistema');
+            }
+        }
+    });
+
         // --- LÓGICA DE ALERTA POR STOCK MÍNIMO ---
     const sqlCheck = "SELECT nombre_producto, stock_actual, stock_minimo FROM productos WHERE id_producto = ?";
     
@@ -460,18 +471,24 @@ app.post('/api/movimientos', (req, res) => {
         db.query(sqlUpdateStock, [id_tipo, numCantidad, id_tipo, numCantidad, numProducto], (errUpdate) => {
     if (errUpdate) return res.status(500).send("Error al actualizar stock");
 
-    // --- NUEVO: Verificar stock bajo tras el movimiento ---
+    // >>> PEGA TU LÓGICA DE ALERTA AQUÍ:
     const sqlCheck = "SELECT nombre_producto, stock_actual, stock_minimo FROM productos WHERE id_producto = ?";
     db.query(sqlCheck, [numProducto], (errCheck, results) => {
-        if (results.length > 0) {
+        if (!errCheck && results.length > 0) {
             const p = results[0];
             if (p.stock_actual <= p.stock_minimo) {
-                crearAlerta('⚠️ Stock Bajo', `El producto ${p.nombre_producto} llegó a ${p.stock_actual} unidades.`, 'danger');
+                crearAlerta(
+                    '⚠️ Stock Bajo', 
+                    `El producto ${p.nombre_producto} llegó a su límite: ${p.stock_actual} unidades.`, 
+                    'danger', 
+                    'Sistema'
+                );
             }
         }
     });
+    // >>> FIN DE LA LÓGICA DE ALERTA
 
-    res.json({ success: true, message: "Movimiento registrado" });
+    res.json({ success: true, message: "Movimiento registrado y stock actualizado" });
 });
     });
 
