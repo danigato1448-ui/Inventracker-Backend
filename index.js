@@ -404,6 +404,32 @@ app.post('/api/movimientos', (req, res) => {
             return res.status(500).send("Error al registrar movimiento: " + err.message);
         }
 
+        // --- LÓGICA DE ALERTA POR STOCK MÍNIMO ---
+    const sqlCheck = "SELECT nombre_producto, stock_actual, stock_minimo FROM productos WHERE id_producto = ?";
+    
+    db.query(sqlCheck, [numProducto], (errCheck, results) => {
+        if (errCheck) {
+            console.error("❌ Error al verificar stock crítico:", errCheck.message);
+            return;
+        }
+
+        if (results.length > 0) {
+            const p = results[0];
+            // Si el stock actual es menor o igual al mínimo, disparamos la alerta
+            if (p.stock_actual <= p.stock_minimo) {
+                crearAlerta(
+                    '⚠️ Stock Bajo', 
+                    `El producto ${p.nombre_producto} (ID: ${numProducto}) ha llegado a un nivel crítico: ${p.stock_actual} unidades.`, 
+                    'danger', 
+                    'Sistema'
+                );
+            }
+        }
+    });
+
+    res.json({ success: true, message: "Movimiento registrado y stock verificado" });
+});
+
         if (id_tipo === 1) { // Si es tipo 1 (Entrada), viene de un proveedor
             crearAlerta(
                 '📦 Recepción de Pedido', 
@@ -439,7 +465,7 @@ app.post('/api/movimientos', (req, res) => {
     res.json({ success: true, message: "Movimiento registrado" });
 });
     });
-});
+
 
 // REEMPLAZA EL DELETE Y PEGA EL PUT EN TU index.js
 
