@@ -482,7 +482,16 @@ app.post('/api/movimientos', (req, res) => {
     });
 
 
-// REEMPLAZA EL DELETE Y PEGA EL PUT EN TU index.js
+// Endpoint para contar productos de un proveedor antes de borrar
+app.get('/api/proveedores/:id/productos-count', (req, res) => {
+    const { id } = req.params;
+    const sql = "SELECT COUNT(*) as count FROM productos WHERE id_proveedor = ?";
+    
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ count: result[0].count });
+    });
+});
 
 // 1. ELIMINAR MOVIMIENTO (Actualizado con seguridad)
 app.delete('/api/movimientos/:id', (req, res) => {
