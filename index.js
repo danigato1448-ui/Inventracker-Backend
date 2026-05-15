@@ -413,17 +413,6 @@ app.post('/api/movimientos', (req, res) => {
             return res.status(500).send("Error al registrar movimiento: " + err.message);
         }
 
-    // --- CORRECCIÓN AQUÍ: Verificar si bajó del mínimo ---
-    const sqlCheck = "SELECT nombre_producto, stock_actual, stock_minimo FROM productos WHERE id_producto = ?";
-    db.query(sqlCheck, [numProducto], (errCheck, results) => {
-        if (!errCheck && results.length > 0) {
-            const p = results[0];
-            if (p.stock_actual <= p.stock_minimo) {
-                crearAlerta('⚠️ Stock Bajo', `El producto ${p.nombre_producto} llegó a su límite: ${p.stock_actual} unidades.`, 'danger', 'Sistema');
-            }
-        }
-    });
-
         // --- LÓGICA DE ALERTA POR STOCK MÍNIMO ---
     const sqlCheck = "SELECT nombre_producto, stock_actual, stock_minimo FROM productos WHERE id_producto = ?";
     
