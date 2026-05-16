@@ -481,15 +481,25 @@ app.post('/api/movimientos', (req, res) => {
 });
     });
 
+// Endpoint para reasignar productos de un proveedor a otro antes de borrar
+app.put('/api/proveedores/:idOrigen/reasignar/:idDestino', (req, res) => {
+    const { idOrigen, idDestino } = req.params;
+    const sql = "UPDATE productos SET id_proveedor = ? WHERE id_proveedor = ?";
+    
+    db.query(sql, [idDestino, idOrigen], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ mensaje: `Se reasignaron ${result.changedRows} productos correctamente.` });
+    });
+});
 
-// Endpoint para contar productos de un proveedor antes de borrar
-app.get('/api/proveedores/:id/productos-count', (req, res) => {
+// Endpoint para verificar si un proveedor tiene productos asociados
+app.get('/api/proveedores/:id/verificar-productos', (req, res) => {
     const { id } = req.params;
-    const sql = "SELECT COUNT(*) as count FROM productos WHERE id_proveedor = ?";
+    const sql = "SELECT COUNT(*) as total FROM productos WHERE id_proveedor = ?";
     
     db.query(sql, [id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ count: result[0].count });
+        res.json({ tieneProductos: result[0].total > 0, cantidad: result[0].total });
     });
 });
 
